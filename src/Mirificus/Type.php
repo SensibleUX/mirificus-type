@@ -1,4 +1,8 @@
 <?php
+
+	/**
+	 * @package Mirificus
+	 */
 	namespace Mirificus;
 	/**
 	 * The exception that is thrown by static::Cast
@@ -7,7 +11,7 @@
 	 * similar to how CallerExceptions are handled (e.g. IncrementOffset should
 	 * be called whenever an InvalidCastException is caught and rethrown).
 	 */
-//	class QInvalidCastException extends Exception {
+//	class InvalidCastException extends \Exception {
 //		public function __construct($strMessage, $intOffset = 2) {
 //			parent::__construct($strMessage, $intOffset);
 //		}
@@ -16,22 +20,21 @@
 	/**
 	 * Type Library to add some support for strongly named types.
 	 *
-	 * PHP does not support strongly named types.  The QCubed type library
-	 * and QCubed typing in general attempts to bring some structure to types
-	 * when passing in values, properties, parameters to/from QCubed framework objects
-	 * and methods.
+	 * PHP does not support strongly named types.  The Mirificus type library
+	 * attempts to bring some structure to types when passing in values, properties,
+	 * parameters to/from Mirificus objects and methods.
 	 *
 	 * The Type library attempts to allow as much flexibility as possible to
 	 * set and cast variables to other types, similar to how PHP does it natively,
-	 * but simply adds a big more structure to it.
+	 * but simply adds a bit more structure to it.
 	 *
 	 * For example, regardless if a variable is an integer, boolean, or string,
-	 * static::Cast will allow the flexibility of those values to interchange with
-	 * each other with little to no issue.
+	 * static::Cast will allow the values to interchange with each other with
+	 * little to no issue.
 	 *
 	 * In addition to value objects (ints, bools, floats, strings), the Type library
 	 * also supports object casting.  While technically casting one object to another
-	 * is not a true cast, static::Cast does at least ensure that the tap being "casted"
+	 * is not a true cast, static::Cast does at least ensure that the type being "casted"
 	 * to is a legitamate subclass of the object being "cast".  So if you have ParentClass,
 	 * and you have a ChildClass that extends ParentClass,
 	 *		$objChildClass = new ChildClass();
@@ -39,17 +42,18 @@
 	 *		Type::Cast($objChildClass, 'ParentClass'); // is a legal cast
 	 *		Type::Cast($objParentClass, 'ChildClass'); // will throw an InvalidCastException
 	 *
-	 * For values, specifically int to string conversion, one different between
+	 * For values, specifically int to string conversion, one difference between
 	 * static::Cast and PHP (in order to add structure) is that if an integer contains
 	 * alpha characters, PHP would normally allow that through w/o complaint, simply
 	 * ignoring any numeric characters past the first alpha character.  static::Cast
-	 * would instead throw an InvalidCastException to let the developer immedaitely
+	 * would instead throw an InvalidCastException to let the developer immediately
 	 * know that something doesn't look right.
 	 *
 	 * In theory, the type library should maintain the same level of flexibility
-	 * PHP developers are accostomed to, while providing a mechanism to limit
-	 * careless coding errors and tough to figure out mistakes due to PHP's sometimes
+	 * PHP developers are accustomed to, while providing a mechanism to limit
+	 * careless coding errors and perplexing mistakes due to PHP's sometimes
 	 * overly laxed type conversions.
+	 * @package Mirificus\Type
 	 */
 	abstract class Type {
 		/**
@@ -58,10 +62,11 @@
 		 * override simply guarantees it.
 		 *
 		 * @return void
+		 * @throws Exception
 		 */
-		//public final function __construct() {
-			//throw new Exception('Type should never be instantiated.  All methods and variables are publically statically accessible.');
-		//}
+		public final function __construct() {
+			throw new Exception('Type should never be instantiated.  All methods and variables are publically statically accessible.');
+		}
 
 		const String = 'string';
 		const Integer = 'integer';
@@ -70,8 +75,8 @@
 		const Object = 'object';
 		const ArrayType = 'array';
 
-		const DateTime = 'QDateTime';
-		
+		const DateTime = '\DateTime';
+
 		const Resource = 'resource';
 
 		const NoOp = 1;
@@ -80,9 +85,17 @@
 		const CheckAndCast = 4;
 		private static $intBehaviour = self::CheckAndCast;
 
+		/**
+		 * Cast an Object to a type.
+		 * @param object $objItem The object to attempt to cast.
+		 * @param string $strType The type to attempt to cast to.
+		 * @access private
+		 * @static
+		 */
 		private static function CastObjectTo($objItem, $strType) {
 			try {
 				$objReflection = new \ReflectionClass($objItem);
+				// XML Elements
 				if ($objReflection->getName() == 'SimpleXMLElement') {
 					switch ($strType) {
 						case static::String:
@@ -90,140 +103,174 @@
 						case static::Integer:
 							try {
 								return static::Cast((string) $objItem, static::Integer);
-							} catch (Exception $objExc) {
+							} catch (\Exception $objExc) {
 								$objExc->IncrementOffset();
 								throw $objExc;
 							}
 						case static::Boolean:
 							$strItem = strtolower(trim((string) $objItem));
 							if (($strItem == 'false') ||
-								(!$strItem))
+								(!$strItem)) {
 								return false;
-							else
+							} else {
 								return true;
+							}
 					}
 				}
 
-				if ($objItem instanceof $strType)
+				if ($objItem instanceof $strType) {
 					return $objItem;
-			} catch (Exception $objExc) {
+				}
+			} catch (\Exception $objExc) {
 			}
 
-			throw new QInvalidCastException(sprintf('Unable to cast %s object to %s', $objReflection->getName(), $strType));
+			throw new \Exception(sprintf('Unable to cast %s object to %s', $objReflection->getName(), $strType));
 		}
 
+		/**
+		 * Cast a value to a type.
+		 * @param mixed $mixItem The value to attempt to cast.
+		 * @param string $strNewType The type to attempt to cast to.
+		 * @access private
+		 * @static
+		 */
 		private static function CastValueTo($mixItem, $strNewType) {
 			$strOriginalType = gettype($mixItem);
 
 			switch (static::TypeFromDoc($strNewType)) {
 				case static::Boolean:
-					if ($strOriginalType == static::Boolean)
+					if ($strOriginalType == static::Boolean) {
 						return $mixItem;
-					if (is_null($mixItem))
+					}
+					if (is_null($mixItem)) {
 						return false;
-					if (strlen($mixItem) == 0)
+					}
+					if (strlen($mixItem) == 0) {
 						return false;
-					if (strtolower($mixItem) == 'false')
+					}
+					if (strtolower($mixItem) == 'false') {
 						return false;
+					}
 					settype($mixItem, $strNewType);
 					return $mixItem;
 
 				case static::Integer:
-					if($strOriginalType == static::Boolean)
-						throw new QInvalidCastException(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
-					if (strlen($mixItem) == 0)
+					if($strOriginalType == static::Boolean) {
+						throw new \Exception(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
+					}
+					if (strlen($mixItem) == 0) {
 						return null;
-					if ($strOriginalType == static::Integer)
+					}
+					if ($strOriginalType == static::Integer) {
 						return $mixItem;
-					
+					}
+
 					// Check to make sure the value hasn't changed significantly
 					$intItem = $mixItem;
 					settype($intItem, $strNewType);
 					$mixTest = $intItem;
 					settype($mixTest, $strOriginalType);
-					
-					// If the value hasn't changed, it's safe to return the casted value
-					if ((string)$mixTest === (string)$mixItem)
-						return $intItem;
-					
-					// if casting changed the value, but we have a valid integer, return with a string cast
-					if (preg_match('/^-?\d+$/',$mixItem) === 1)
-						return (string)$mixItem;
-					
-					// any other scenarios is an invalid cast
-					throw new QInvalidCastException(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
-				case static::Float:
-					if($strOriginalType == static::Boolean)
-						throw new QInvalidCastException(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
-					if (strlen($mixItem) == 0)
-						return null;
-					if ($strOriginalType == static::Float)
-						return $mixItem;
 
-					if (!is_numeric($mixItem)) 
-						throw new QInvalidCastException(sprintf('Invalid float: %s', $mixItem)); 
-					
-					// Check to make sure the value hasn't changed significantly
+					// If the value hasn't changed, it's safe to return the cast value
+					if ((string)$mixTest === (string)$mixItem) {
+						return $intItem;
+					}
+
+					// if casting changed the value, but we have a valid integer, return with a string cast
+					if (preg_match('/^-?\d+$/',$mixItem) === 1) {
+						return (string)$mixItem;
+					}
+
+					// any other scenarios is an invalid cast
+					throw new \Exception(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
+				case static::Float:
+					if($strOriginalType == static::Boolean) {
+						throw new \Exception(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
+					}
+					if (strlen($mixItem) == 0) {
+						return null;
+					}
+					if ($strOriginalType == static::Float) {
+						return $mixItem;
+					}
+
+					if (!is_numeric($mixItem)) {
+						throw new \Exception(sprintf('Invalid float: %s', $mixItem));
+					}
+					// Check to make sure the value hasn't changed significantly.
 					$fltItem = $mixItem;
 					settype($fltItem, $strNewType);
 					$mixTest = $fltItem;
 					settype($mixTest, $strOriginalType);
-					
-					//account for any scientific notation that results
-					//find out what notation is currently being used
+
+					// Account for any scientific notation that results,
+					// find out what notation is currently being used...
 					$i = strpos($mixItem, '.');
 					$precision = ($i === false) ? 0 : strlen($mixItem) - $i - 1;
-					//and represent the casted value the same way
+					// ...and represent the cast value the same way.
 					$strTest = sprintf('%.' . $precision . 'f', $fltItem);
 
-					// If the value hasn't changed, it's safe to return the casted value
-					if ((string)$strTest === (string)$mixItem)
+					// If the value hasn't changed, it's safe to return the cast value
+					if ((string)$strTest === (string)$mixItem) {
 						return $fltItem;
-					
-					// the changed value could be the result of loosing precision. Return the original value with no cast
+					}
+					// the changed value could be the result of losing precision.
+					// Return the original value with no cast.
 					return $mixItem;
-			
+
 				case static::String:
-					if ($strOriginalType == static::String)
+					if ($strOriginalType == static::String) {
 						return $mixItem;
-					
+					}
+
 					// Check to make sure the value hasn't changed significantly
 					$strItem = $mixItem;
 					settype($strItem, $strNewType);
 					$mixTest = $strItem;
 					settype($mixTest, $strOriginalType);
-					
+
 					// Has it?
-					$blnSame = true; 
-					if ($strOriginalType == static::Float) { 
-						// type conversion from float to string affects precision and can throw off the comparison 
-						// so we need to use a comparison check using an epsilon value instead 
-						$epsilon = 1.0e-14; 
-						$diff = abs($mixItem - $mixTest); 
-						if ($diff > $epsilon) { 
-							$blnSame = false; 
-						} 
-					} 
-					else { 
-						if ($mixTest != $mixItem) 
-						$blnSame = false; 
-					} 
-					if (!$blnSame) 
+					$blnSame = true;
+					if ($strOriginalType == static::Float) {
+						// type conversion from float to string affects precision and can throw off the comparison
+						// so we need to use a comparison check using an epsilon value instead
+						$epsilon = 1.0e-14;
+						$diff = abs($mixItem - $mixTest);
+						if ($diff > $epsilon) {
+							$blnSame = false;
+						}
+					}
+					else {
+						if ($mixTest != $mixItem){
+							$blnSame = false;
+						}
+					}
+					if (!$blnSame) {
 						//This is an invalid cast
-						throw new QInvalidCastException(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
-					
+						throw new \Exception(sprintf('Unable to cast %s value to %s: %s', $strOriginalType, $strNewType, $mixItem));
+					}
 					return $strItem;
 
 				default:
-					throw new QInvalidCastException(sprintf('Unable to cast %s value to unknown type %s', $strOriginalType, $strNewType));
+					throw new \Exception(sprintf('Unable to cast %s value to unknown type %s', $strOriginalType, $strNewType));
 			}
 		}
-		
+
+		/**
+		 * Cast an array to a type.
+		 * @param array $arrItem The array to attempt to cast.
+		 * @param string $strType The type to attempt to cast to.
+		 * @return mixed The result of the cast.
+		 * @throws \Exception
+		 * @access private
+		 * @static
+		 */
 		private static function CastArrayTo($arrItem, $strType) {
-			if ($strType == static::ArrayType)
+			if ($strType == static::ArrayType) {
 				return $arrItem;
-			else
-				throw new QInvalidCastException(sprintf('Unable to cast Array to %s', $strType));
+			} else {
+				throw new \Exception(sprintf('Unable to cast Array to %s', $strType));
+			}
 		}
 
 		/**
@@ -232,9 +279,9 @@
 		 * Depending on your application you may or may not need validation or casting or both.
 		 * In these situations you can set the necessary behaviour by passing the appropriate constant to this function.
 		 *
+		 * @param int $intBehaviour One of the 4 constants static::NoOp, static::CastOnly, static::CheckOnly, static::CheckAndCast.
+		 * @return int The previous setting.
 		 * @static
-		 * @param int $intBehaviour one of the 4 constants static::NoOp, static::CastOnly, static::CheckOnly, static::CheckAndCast
-		 * @return int the previous setting
 		 */
 		public static function SetBehaviour($intBehaviour) {
 			$oldBehaviour = static::$intBehaviour;
@@ -248,12 +295,11 @@
 		 *
 		 * Will throw an exception if the cast fails, causes unexpected side effects,
 		 * if attempting to cast an object to a value (or vice versa), or if an object
-		 * is being cast to a class that isn't a subclass (e.g. parent).  The exception
-		 * thrown will be an InvalidCastException, which extends CallerException.
+		 * is being cast to a class that isn't a subclass (e.g. parent).
 		 *
-		 * @param mixed $mixItem the value, array or object that you want to cast
-		 * @param string $strType the type to cast to.  Can be a static::XXX constant (e.g. static::Integer), or the name of a Class
-		 * @return mixed the passed in value/array/object that has been cast to strType
+		 * @param mixed $mixItem The value, array or object that you want to cast.
+		 * @param string $strType The type to cast to.  Can be a static::XXX constant (e.g. static::Integer), or the name of a Class.
+		 * @return mixed The passed in value/array/object that has been cast to $strType.
 		 */
 		public final static function Cast($mixItem, $strType) {
 			switch (static::$intBehaviour) {
@@ -308,41 +354,54 @@
 
 				case static::Resource:
 					// Cannot Cast Resources
-					throw new QInvalidCastException('Resources cannot be cast');
+					throw new \Exception('Resources cannot be cast');
 
 				default:
 					// Could not determine type
-					throw new QInvalidCastException(sprintf('Unable to determine type of item to be cast: %s', $mixItem));
+					throw new \Exception(sprintf('Unable to determine type of item to be cast: %s', $mixItem));
 			}
 		}
-		
+
 		/**
-		 * Used by the QCubed Code Generator to allow for the code generation of
+		 * Used by the Mirificus Code Generator to allow for the code generation of
 		 * the actual "Type::Xxx" constant, instead of the text of the constant,
 		 * in generated code.
 		 *
 		 * It is rare for Constant to be used manually outside of Code Generation.
 		 *
-		 * @param string $strType the type to convert to 'constant' form
-		 * @return string the text of the Text:Xxx Constant
+		 * @param string $strType The type to convert to 'constant' form.
+		 * @return string The text of the static:Type Constant.
 		 */
 		public final static function Constant($strType) {
 			switch ($strType) {
-				case static::Object: return 'static::Object';
-				case static::String: return 'static::String';
-				case static::Integer: return 'static::Integer';
-				case static::Float: return 'static::Float';
-				case static::Boolean: return 'static::Boolean';
-				case static::ArrayType: return 'static::ArrayType';
-				case static::Resource: return 'static::Resource';
-				case static::DateTime: return 'static::DateTime';
+				case static::Object:
+					return 'static::Object';
+				case static::String:
+					return 'static::String';
+				case static::Integer:
+					return 'static::Integer';
+				case static::Float:
+					return 'static::Float';
+				case static::Boolean:
+					return 'static::Boolean';
+				case static::ArrayType:
+					return 'static::ArrayType';
+				case static::Resource:
+					return 'static::Resource';
+				case static::DateTime:
+					return 'static::DateTime';
 
 				default:
 					// Could not determine type
-					throw new QInvalidCastException(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
+					throw new \Exception(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
 			}
 		}
-		
+
+		/**
+		 * Used when parsing API docs.
+		 * @param string $strType The type from the API doc definition.
+		 * @return string The translated type constant.
+		 */
 		public final static function TypeFromDoc($strType) {
 			switch (strtolower($strType)) {
 				case 'string':
@@ -381,39 +440,44 @@
 						$objReflection = new \ReflectionClass($strType);
 						return $strType;
 					} catch (ReflectionException $objExc) {
-						throw new QInvalidCastException(sprintf('Unable to determine type of item from PHPDoc Comment to lookup its static or Class: %s', $strType));
+						throw new \Exception(sprintf('Unable to determine type of item from PHPDoc Comment to lookup its static or Class: %s', $strType));
 					}
 			}
 		}
-		
+
 		/**
-		 * Used by the QCubed Code Generator and QSoapService class to allow for the xml generation of
+		 * Used by the Mirificus Code Generator and SoapService class to allow for the xml generation of
 		 * the actual "s:type" Soap Variable types.
 		 *
-		 * @param string $strType the type to convert to 'constant' form
-		 * @return string the text of the SOAP standard s:type variable type
+		 * @param string $strType The type to convert to 'constant' form.
+		 * @return string the Text of the SOAP standard s:type variable type.
 		 */
 		public final static function SoapType($strType) {
 			switch ($strType) {
-				case static::String: return 'string';
-				case static::Integer: return 'int';
-				case static::Float: return 'float';
-				case static::Boolean: return 'boolean';
-				case static::DateTime: return 'dateTime';
+				case static::String:
+					return 'string';
+				case static::Integer:
+					return 'int';
+				case static::Float:
+					return 'float';
+				case static::Boolean:
+					return 'boolean';
+				case static::DateTime:
+					return 'dateTime';
 
 				case static::ArrayType:
 				case static::Object:
 				case static::Resource:
 				default:
 					// Could not determine type
-					throw new QInvalidCastException(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
+					throw new \Exception(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
 			}
 		}
 /*
 		final public static function SoapArrayType($strType) {
 			try {
 				return sprintf('ArrayOf%s', ucfirst(static::SoapType($strType)));
-			} catch (QInvalidCastException $objExc) {}
+			} catch (\Exception $objExc) {}
 				$objExc->IncrementOffset();
 				throw $objExc;
 			}
@@ -442,14 +506,14 @@
 				case static::Resource:
 				default:
 					// Could not determine type
-					throw new QInvalidCastException(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
+					throw new \Exception(sprintf('Unable to determine type of item to lookup its constant: %s', $strType));
 			}
 
 			$strArrayName = static::SoapArrayType($strType);
 
 			if (!array_key_exists($strArrayName, $strComplexTypeArray))
 				$strComplexTypeArray[$strArrayName] = sprintf(
-					'<s:complexType name="%s"><s:sequence>' . 
+					'<s:complexType name="%s"><s:sequence>' .
 					'<s:element minOccurs="0" maxOccurs="unbounded" name="%s" type="%s"/>' .
 					'</s:sequence></s:complexType>',
 					static::SoapArrayType($strType),
