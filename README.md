@@ -6,3 +6,7 @@ A [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md
 This Class is responsible for Type checking, casting, and conversion. It is required by a few of the Mirificus packages.
 
 ![Mirificus logo](http://sensibleux.com/wp-content/uploads/2013/09/mirificus.png "Mirificus PHP Library")
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/SensibleUX/mirificus-type/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
